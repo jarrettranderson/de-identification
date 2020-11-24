@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ibm.whc.deid.ObjectMapperFactory;
-import com.ibm.whc.deid.shared.exception.DeidException;
 import com.ibm.whc.deid.shared.pojo.config.ConfigSchemaType;
 import com.ibm.whc.deid.shared.pojo.config.DeidMaskingConfig;
 import com.ibm.whc.deid.shared.pojo.config.Rule;
@@ -39,12 +38,9 @@ public class MaskingConfigUtils {
 
   private static final Logger logger = LoggerFactory.getLogger(MaskingConfigUtils.class);
 
-  private static MaskingConfigUtils _instance = null;
+  private static final MaskingConfigUtils _instance = new MaskingConfigUtils();
 
   public static MaskingConfigUtils getInstance() {
-    if (_instance == null) {
-      _instance = new MaskingConfigUtils();
-    }
     return _instance;
   }
 
@@ -207,7 +203,7 @@ public class MaskingConfigUtils {
   }
 
   /**
-   * Validate configuration.
+   * Validates a masking configuration.
    *
    * @param configuration the masking configuration in serialized JSON (String) form
    * 
@@ -220,6 +216,15 @@ public class MaskingConfigUtils {
     return getInstance().validateConfigMethod(configuration);
   }
 
+  /**
+   * Validates a masking configuration.
+   *
+   * @param configuration the masking configuration in serialized JSON (String) form
+   * 
+   * @return the configuration in object form
+   * 
+   * @throws InvalidMaskingConfigurationException if the given configuration string is not valid
+   */
   public DeidMaskingConfig validateConfigMethod(String configuration)
       throws InvalidMaskingConfigurationException {
     DeidMaskingConfig deidMaskingConfig = null;
@@ -229,8 +234,7 @@ public class MaskingConfigUtils {
     }
 
     try {
-      deidMaskingConfig =
-          getObjectMapper().readValue(configuration, DeidMaskingConfig.class);
+      deidMaskingConfig = getObjectMapper().readValue(configuration, DeidMaskingConfig.class);
     } catch (IOException e) {
       throw new InvalidMaskingConfigurationException("invalid configuration: " + e.getMessage(), e);
     }
@@ -241,44 +245,83 @@ public class MaskingConfigUtils {
   }
 
   /**
-   * The config file has various portion; rules, json, etc. This method validates the json portion
-   * of the config
+   * Validates the content of the "json" property in a masking configuration.
    *
-   * @param deidMaskingConfig
-   * @throws DeidException
+   * @param deidMaskingConfig the masking configuration being validated
+   * 
+   * @throws InvalidMaskingConfigurationException if the masking configuration is not valid.
    */
-  private static void validateJsonConfig(DeidMaskingConfig deidMaskingConfig)
+  protected void validateJsonConfig(DeidMaskingConfig deidMaskingConfig)
       throws InvalidMaskingConfigurationException {
 
     final Map<String, Rule> rulesMap = deidMaskingConfig.getRulesMap();
-    JsonConfig jsonConfig = deidMaskingConfig.getJson();
-    if (jsonConfig != null) {
-      List<JsonMaskingRule> maskingRules = jsonConfig.getMaskingRules();
 
-      // Check to see if json config has a config that refers to a rule
-      // that does not exist
-      Optional<JsonMaskingRule> invalidMaskingRule = maskingRules.parallelStream().filter(rule -> {
+    JsonConfig jsonConfig = deidMaskingConfig.getJson();
+    if (jsonConfig == null) {
+      throw new InvalidMaskingConfigurationException(
+          "invalid masking configuration: the value of the `"
+              + DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "` property is missing",
+          DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME);
+    }
+
+    if (jsonConfig.getSchemaType() == null) {
+      throw new InvalidMaskingConfigurationException(
+          "invalid masking configuration: the value of the `"
+              + DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
+              + JsonConfig.SCHEMA_TYPE_PROPERTY_NAME + "` property is missing",
+          DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
+              + JsonConfig.SCHEMA_TYPE_PROPERTY_NAME);
+    }
+
+    String messageTypeKey = jsonConfig.getMessageTypeKey();
+    if (messageTypeKey != null && !messageTypeKey.trim().isEmpty()) {
+      // when messageTypeKey is provided, messageTypes must be provided
+      List<String> messageTypes = jsonConfig.getMessageTypes();
+      boolean found = false;
+      if (messageTypes != null) {
+        for (String messageType : messageTypes) {
+          if (messageType != null && !messageType.trim().isEmpty()) {
+            found = true;
+            break;
+          }
+        }
+      }
+      if (!found) {
+        throw new InvalidMaskingConfigurationException(
+            "invalid masking configuration: `" + DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME
+                + "." + JsonConfig.MESSAGE_TYPES_PROPERTY_NAME + "` must be provided when `"
+                + DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
+                + JsonConfig.MESSAGE_TYPE_KEY_PROPERTY_NAME + "` is provided",
+            DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
+                + JsonConfig.MESSAGE_TYPES_PROPERTY_NAME);
+      }
+    }
+
+    List<JsonMaskingRule> maskingRules = jsonConfig.getMaskingRules();
+
+    // Check to see if json config has a config that refers to a rule
+    // that does not exist
+    Optional<JsonMaskingRule> invalidMaskingRule = maskingRules.parallelStream().filter(rule -> {
+      String ruleName = rule.getRule();
+      if (!rulesMap.containsKey(ruleName)) {
+        return true;
+      }
+      return false;
+    }).findAny();
+
+    if (invalidMaskingRule.isPresent()) {
+      long count = maskingRules.parallelStream().filter(rule -> {
         String ruleName = rule.getRule();
         if (!rulesMap.containsKey(ruleName)) {
           return true;
         }
         return false;
-      }).findAny();
+      }).count();
 
-      if (invalidMaskingRule.isPresent()) {
-        long count = maskingRules.parallelStream().filter(rule -> {
-          String ruleName = rule.getRule();
-          if (!rulesMap.containsKey(ruleName)) {
-            return true;
-          }
-          return false;
-        }).count();
-
-        JsonMaskingRule rule = invalidMaskingRule.get();
-        throw new InvalidMaskingConfigurationException(
-            "The JSON masking rule does not refer to a valid rule: " + rule.getRule()
-                + ". There are " + count + " invalid rules.");
-      }
+      JsonMaskingRule rule = invalidMaskingRule.get();
+      throw new InvalidMaskingConfigurationException(
+          "The JSON masking rule does not refer to a valid rule: " + rule.getRule() + ". There are "
+              + count + " invalid rules.");
     }
   }
 }

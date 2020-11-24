@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ibm.whc.deid.shared.pojo.config.json.JsonConfig;
 
 /*
@@ -21,18 +22,22 @@ import com.ibm.whc.deid.shared.pojo.config.json.JsonConfig;
 @JsonInclude(Include.NON_NULL)
 public class DeidMaskingConfig implements Serializable {
 
-  /** */
   private static final long serialVersionUID = 6474490241730985082L;
 
+  public static final String JSON_CONFIGURATION_PROPERTY_NAME = "json";
+  
   // The rules are configured in the json as an array. So we use List<Rule> in
   // the POJO.
-  // But for quicker access, we also store the rule as a hashmap.
-  Map<String, Rule> rulesMap;
-  List<Rule> rules;
+  // But for quicker access, we also store the rule as a map.
+  private Map<String, Rule> rulesMap;
+  private List<Rule> rules;
 
-  JsonConfig json;
+  @JsonProperty(JSON_CONFIGURATION_PROPERTY_NAME)
+  private JsonConfig json;
 
-  String certificateID;
+  private String certificateID;
+
+  private boolean defaultNoRuleResolution;
 
   public DeidMaskingConfig() {
     json = new JsonConfig();
@@ -69,8 +74,6 @@ public class DeidMaskingConfig implements Serializable {
   public void setJson(JsonConfig json) {
     this.json = json;
   }
-
-  boolean defaultNoRuleResolution;
 
   public boolean isDefaultNoRuleResolution() {
     return defaultNoRuleResolution;
