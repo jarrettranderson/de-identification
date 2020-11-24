@@ -5,20 +5,6 @@
  */
 package com.ibm.whc.deid.shared.util;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ibm.whc.deid.ObjectMapperFactory;
@@ -30,6 +16,19 @@ import com.ibm.whc.deid.shared.pojo.config.json.JsonMaskingRule;
 import com.ibm.whc.deid.shared.pojo.config.masking.ConfigConstant;
 import com.ibm.whc.deid.shared.pojo.config.masking.MaskingProviderConfig;
 import com.ibm.whc.deid.shared.pojo.masking.MaskingProviderType;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /*
  * Utility class for masking config functionality
@@ -254,8 +253,6 @@ public class MaskingConfigUtils {
   protected void validateJsonConfig(DeidMaskingConfig deidMaskingConfig)
       throws InvalidMaskingConfigurationException {
 
-    final Map<String, Rule> rulesMap = deidMaskingConfig.getRulesMap();
-
     JsonConfig jsonConfig = deidMaskingConfig.getJson();
     if (jsonConfig == null) {
       throw new InvalidMaskingConfigurationException(
@@ -277,16 +274,7 @@ public class MaskingConfigUtils {
     if (messageTypeKey != null && !messageTypeKey.trim().isEmpty()) {
       // when messageTypeKey is provided, messageTypes must be provided
       List<String> messageTypes = jsonConfig.getMessageTypes();
-      boolean found = false;
-      if (messageTypes != null) {
-        for (String messageType : messageTypes) {
-          if (messageType != null && !messageType.trim().isEmpty()) {
-            found = true;
-            break;
-          }
-        }
-      }
-      if (!found) {
+      if (messageTypes == null || messageTypes.isEmpty()) {
         throw new InvalidMaskingConfigurationException(
             "invalid masking configuration: `" + DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME
                 + "." + JsonConfig.MESSAGE_TYPES_PROPERTY_NAME + "` must be provided when `"
@@ -295,33 +283,73 @@ public class MaskingConfigUtils {
             DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
                 + JsonConfig.MESSAGE_TYPES_PROPERTY_NAME);
       }
+      int offset = 0;
+      for (String messageType : messageTypes) {
+        if (messageType == null || messageType.trim().isEmpty()) {
+          throw new InvalidMaskingConfigurationException(
+              "invalid masking configuration: value at offset " + offset + " in `"
+                  + DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
+                  + JsonConfig.MESSAGE_TYPES_PROPERTY_NAME + "` list is missing",
+              DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
+                  + JsonConfig.MESSAGE_TYPES_PROPERTY_NAME);
+        }
+        offset++;
+      }
     }
 
     List<JsonMaskingRule> maskingRules = jsonConfig.getMaskingRules();
-
-    // Check to see if json config has a config that refers to a rule
-    // that does not exist
-    Optional<JsonMaskingRule> invalidMaskingRule = maskingRules.parallelStream().filter(rule -> {
-      String ruleName = rule.getRule();
-      if (!rulesMap.containsKey(ruleName)) {
-        return true;
-      }
-      return false;
-    }).findAny();
-
-    if (invalidMaskingRule.isPresent()) {
-      long count = maskingRules.parallelStream().filter(rule -> {
-        String ruleName = rule.getRule();
-        if (!rulesMap.containsKey(ruleName)) {
-          return true;
+    if (maskingRules != null && !maskingRules.isEmpty()) {
+      Map<String,Rule> rulesMap = deidMaskingConfig.getRulesMap();
+      int offset = 0;
+      int mismatchCount = 0;
+      String firstMismatch = null;
+      
+      for (JsonMaskingRule ruleAssignment : maskingRules) {
+        if (ruleAssignment == null) {
+          throw new InvalidMaskingConfigurationException(
+              "invalid masking configuration: `" + JsonMaskingRule.RULE_PROPERTY_NAME + "` is missing from the rule assignment at offset " + offset + " in the list at `" + 
+              DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "." + JsonConfig.RULES_PROPERTY_NAME + "`", 
+              DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
+                  + JsonConfig.RULES_PROPERTY_NAME + "." + JsonMaskingRule.RULE_PROPERTY_NAME);
         }
-        return false;
-      }).count();
-
-      JsonMaskingRule rule = invalidMaskingRule.get();
-      throw new InvalidMaskingConfigurationException(
-          "The JSON masking rule does not refer to a valid rule: " + rule.getRule() + ". There are "
-              + count + " invalid rules.");
+        
+        String path = ruleAssignment.getJsonPath();
+        if (path == null || !path.startsWith("/")) {
+          throw new InvalidMaskingConfigurationException(
+              "invalid masking configuration: `" + JsonMaskingRule.PATH_PROPERTY_NAME + "` in the rule assignment at offset " + offset + " in the list at `" + 
+              DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "." + JsonConfig.RULES_PROPERTY_NAME + "` must start with `/`", 
+              DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
+                  + JsonConfig.RULES_PROPERTY_NAME + "." + JsonMaskingRule.PATH_PROPERTY_NAME);
+        }
+        
+        String ruleName = ruleAssignment.getRule();
+        if (ruleName == null && ! allowsNullRuleInRuleAssignment()) {
+          throw new InvalidMaskingConfigurationException(
+                  "invalid masking configuration: `" + JsonMaskingRule.RULE_PROPERTY_NAME + "` is missing from the rule assignment at offset " + offset + " in the list at `" + 
+                  DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "." + JsonConfig.RULES_PROPERTY_NAME + "`", 
+                  DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
+                      + JsonConfig.RULES_PROPERTY_NAME + "." + JsonMaskingRule.RULE_PROPERTY_NAME);
+        }
+        
+        if (!rulesMap.containsKey(ruleName)) {
+          mismatchCount++;
+          if (firstMismatch == null) {
+            firstMismatch = ruleName;
+          }
+        }
+        
+        offset++;
+      }
+      
+      if (firstMismatch != null) {
+        throw new InvalidMaskingConfigurationException(
+            "The JSON masking rule does not refer to a valid rule: " + firstMismatch + ". There are "
+                + mismatchCount + " invalid rules.");
+      }
     }
+  }
+  
+  protected boolean allowsNullRuleInRuleAssignment() {
+    return false;
   }
 }

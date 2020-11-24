@@ -59,12 +59,14 @@ public class DeidMaskingConfig implements Serializable {
 
   public void setRules(List<Rule> rules) {
     this.rules = rules;
-
+    
     // Add all the rules to a hashmap for quicker access
-    rulesMap = new HashMap<>();
-    rules.forEach(rule -> {
-      rulesMap.put(rule.getName(), rule);
-    });
+    rulesMap = new HashMap<>(rules == null ? 10 : rules.size() * 2);
+    if (rules != null) {
+      rules.forEach(rule -> {
+        rulesMap.put(rule.getName(), rule);
+      });
+    }
   }
 
   public JsonConfig getJson() {
@@ -93,12 +95,14 @@ public class DeidMaskingConfig implements Serializable {
 
   public Map<String, String> getStringValueWithPrefixMatch(String prefix) {
     Map<String, String> values = new ConcurrentHashMap<>();
-
-    json.getMaskingRules().forEach(rule -> {
-      if (rule.getJsonPath().startsWith(prefix)) {
-        values.put(rule.getJsonPath(), rule.getRule());
-      }
-    });
+    
+    if (getJson() != null && getJson().getMaskingRules() != null) {
+      getJson().getMaskingRules().forEach(rule -> {
+        if (rule.getJsonPath().startsWith(prefix)) {
+          values.put(rule.getJsonPath(), rule.getRule());
+        }
+      });
+    }
 
     return values;
   }

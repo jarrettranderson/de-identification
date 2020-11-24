@@ -24,6 +24,7 @@ public class JsonConfig implements Serializable {
   public static final String SCHEMA_TYPE_PROPERTY_NAME = "schemaType";  
   public static final String MESSAGE_TYPE_KEY_PROPERTY_NAME = "messageTypeKey";
   public static final String MESSAGE_TYPES_PROPERTY_NAME = "messageTypes";
+  public static final String RULES_PROPERTY_NAME = "maskingRules";
   
   @JsonProperty(SCHEMA_TYPE_PROPERTY_NAME)
   private ConfigSchemaType schemaType;
@@ -31,6 +32,7 @@ public class JsonConfig implements Serializable {
   private String messageTypeKey; // default to null
   @JsonProperty(MESSAGE_TYPES_PROPERTY_NAME)
   private List<String> messageTypes;
+  @JsonProperty(RULES_PROPERTY_NAME)
   private List<JsonMaskingRule> maskingRules = new ArrayList<>();
 
   public ConfigSchemaType getSchemaType() {
