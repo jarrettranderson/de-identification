@@ -238,7 +238,7 @@ public class MaskingConfigUtils {
       throw new InvalidMaskingConfigurationException("invalid configuration: " + e.getMessage(), e);
     }
 
-    validateJsonConfig(deidMaskingConfig);
+    validateJsonConfig(deidMaskingConfig, false);
 
     return deidMaskingConfig;
   }
@@ -248,9 +248,13 @@ public class MaskingConfigUtils {
    *
    * @param deidMaskingConfig the masking configuration being validated
    * 
+   * @param allowsNullRuleInRuleAssignment <i>True</i> if rule assignments should be accepted if they 
+   * do not actually specify a rule and <i>False</i> otherwise.  Any rule assignments accepted under
+   * the value <i>True</i> must be removed or modified before a masking operation uses this configuration.
+   * 
    * @throws InvalidMaskingConfigurationException if the masking configuration is not valid.
    */
-  protected void validateJsonConfig(DeidMaskingConfig deidMaskingConfig)
+  protected void validateJsonConfig(DeidMaskingConfig deidMaskingConfig, boolean allowsNullRuleInRuleAssignment)
       throws InvalidMaskingConfigurationException {
 
     JsonConfig jsonConfig = deidMaskingConfig.getJson();
@@ -323,7 +327,7 @@ public class MaskingConfigUtils {
         }
         
         String ruleName = ruleAssignment.getRule();
-        if (ruleName == null && ! allowsNullRuleInRuleAssignment()) {
+        if (ruleName == null && ! allowsNullRuleInRuleAssignment) {
           throw new InvalidMaskingConfigurationException(
                   "invalid masking configuration: `" + JsonMaskingRule.RULE_PROPERTY_NAME + "` is missing from the rule assignment at offset " + offset + " in the list at `" + 
                   DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "." + JsonConfig.RULES_PROPERTY_NAME + "`", 
@@ -347,9 +351,5 @@ public class MaskingConfigUtils {
                 + mismatchCount + " invalid rules.");
       }
     }
-  }
-  
-  protected boolean allowsNullRuleInRuleAssignment() {
-    return false;
   }
 }

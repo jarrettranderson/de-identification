@@ -40,7 +40,7 @@ public class DeidMaskingConfig implements Serializable {
   private boolean defaultNoRuleResolution;
 
   public DeidMaskingConfig() {
-    json = new JsonConfig();
+    // nothing required here
   }
 
   @JsonIgnore

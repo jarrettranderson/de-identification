@@ -217,13 +217,13 @@ public class DataMaskingControllerErrorPathTest {
     ObjectMapper mapper = new ObjectMapper();
     String request = mapper.writeValueAsString(dataMaskingModel);
 
-    // message is for schemaType since empty jsonConfig is provided when jsonConfig is null
     log.info(request);
     this.mockMvc
         .perform(post(basePath + "/deidentification")
             .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
         .andDo(print()).andExpect(status().isBadRequest())
-        .andExpect(content().string(containsString("`json.schemaType` property is missing")));
+        .andExpect(content().string(containsString(
+            "invalid masking configuration: the value of the `json` property is missing")));
   }
 
   @Test
@@ -501,7 +501,7 @@ public class DataMaskingControllerErrorPathTest {
 
     config.getJson().getMaskingRules().get(0).setRule("no_1");
     config.getJson().getMaskingRules().get(1).setRule("");
-    config.getJson().getMaskingRules().get(2).setRule("  "); 
+    config.getJson().getMaskingRules().get(2).setRule("  ");
     config.getJson().getMaskingRules().add(new JsonMaskingRule("/fhir/bad/rule", "no_last"));
     DataMaskingModel dataMaskingModel = new DataMaskingModel(
         objectMapper.writeValueAsString(config), dataList, ConfigSchemaType.FHIR);
