@@ -16,6 +16,7 @@ import com.ibm.whc.deid.shared.pojo.config.json.JsonMaskingRule;
 import com.ibm.whc.deid.shared.pojo.config.masking.ConfigConstant;
 import com.ibm.whc.deid.shared.pojo.config.masking.MaskingProviderConfig;
 import com.ibm.whc.deid.shared.pojo.masking.MaskingProviderType;
+import com.ibm.whc.deid.shared.pojo.masking.MaskingProviderType.MaskingProviderCategory;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -441,6 +442,25 @@ public class MaskingConfigUtils {
           // being valid
 
           providerOffset++;
+        }
+
+        if (providers.size() == 2) {
+          if (providers.get(0).getType().getCategory() == MaskingProviderCategory.CategoryII) {
+            throw new InvalidMaskingConfigurationException(
+                "invalid masking configuration: the rule at offset " + offset + " in the list in `"
+                    + DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME
+                    + "` contains multiple masking providers, but the first masking provider is not a Category I provider",
+                DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "."
+                    + Rule.PROVIDERS_PROPERTY_NAME);
+          }
+          if (providers.get(1).getType().getCategory() == MaskingProviderCategory.CategoryI) {
+            throw new InvalidMaskingConfigurationException(
+                "invalid masking configuration: the rule at offset " + offset + " in the list in `"
+                    + DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME
+                    + "` contains multiple masking providers, but the second masking provider is not a Category II provider",
+                DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "."
+                    + Rule.PROVIDERS_PROPERTY_NAME);
+          }
         }
 
         offset++;

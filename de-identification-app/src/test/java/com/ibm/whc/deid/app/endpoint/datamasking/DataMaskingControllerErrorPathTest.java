@@ -20,10 +20,10 @@ import com.ibm.whc.deid.shared.pojo.config.ConfigSchemaType;
 import com.ibm.whc.deid.shared.pojo.config.DeidMaskingConfig;
 import com.ibm.whc.deid.shared.pojo.config.Rule;
 import com.ibm.whc.deid.shared.pojo.config.json.JsonMaskingRule;
+import com.ibm.whc.deid.shared.pojo.config.masking.CityMaskingProviderConfig;
+import com.ibm.whc.deid.shared.pojo.config.masking.ContinentMaskingProviderConfig;
 import com.ibm.whc.deid.shared.pojo.config.masking.HashMaskingProviderConfig;
-import com.ibm.whc.deid.shared.pojo.config.masking.MaskingProviderConfig;
 import com.ibm.whc.deid.shared.pojo.masking.DataMaskingModel;
-import com.ibm.whc.deid.shared.util.InvalidMaskingConfigurationException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -631,5 +631,51 @@ public class DataMaskingControllerErrorPathTest {
         .andDo(print()).andExpect(status().isBadRequest())
         .andExpect(content().string(containsString(
             "invalid masking configuration: too many entries in `maskingProviders` for the rule at offset 0 of the list in `rules` - the maximum allowed is 2")));
-  }    
+  }
+
+  @Test
+  public void testConfigCategory2First() throws Exception {
+    List<String> dataList = new ArrayList<>();
+    dataList.add(TEST_DATA);
+
+    ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
+    DeidMaskingConfig config = objectMapper.readValue(TEST_CONFIG, DeidMaskingConfig.class);
+    config.getRules().get(0).getMaskingProviders().add(0, new HashMaskingProviderConfig());
+
+    DataMaskingModel dataMaskingModel = new DataMaskingModel(
+        objectMapper.writeValueAsString(config), dataList, ConfigSchemaType.FHIR);
+    String request = objectMapper.writeValueAsString(dataMaskingModel);
+
+    log.info(request);
+    this.mockMvc
+        .perform(post(basePath + "/deidentification")
+            .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
+        .andDo(print()).andExpect(status().isBadRequest())
+        .andExpect(content().string(containsString(
+            "invalid masking configuration: the rule at offset 0 in the list in `rules` contains multiple masking providers, but the first masking provider is not a Category I provider")));
+  }
+
+  @Test
+  public void testConfigCategory1Second() throws Exception {
+    List<String> dataList = new ArrayList<>();
+    dataList.add(TEST_DATA);
+
+    ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
+    DeidMaskingConfig config = objectMapper.readValue(TEST_CONFIG, DeidMaskingConfig.class);
+    config.getRules().add(2, new Rule("multiRuleX",
+        Arrays.asList(new ContinentMaskingProviderConfig(), new CityMaskingProviderConfig())));
+
+    DataMaskingModel dataMaskingModel = new DataMaskingModel(
+        objectMapper.writeValueAsString(config), dataList, ConfigSchemaType.FHIR);
+    String request = objectMapper.writeValueAsString(dataMaskingModel);
+
+    log.info(request);
+    this.mockMvc
+        .perform(post(basePath + "/deidentification")
+            .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
+        .andDo(print()).andExpect(status().isBadRequest())
+        .andExpect(content().string(containsString(
+            "invalid masking configuration: the rule at offset 2 in the list in `rules` contains multiple masking providers, but the second masking provider is not a Category II provider")));
+  }
+
 }
