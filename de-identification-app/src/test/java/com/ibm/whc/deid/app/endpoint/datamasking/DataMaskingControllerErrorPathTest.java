@@ -18,13 +18,19 @@ import com.ibm.whc.deid.ObjectMapperFactory;
 import com.ibm.whc.deid.app.endpoint.Application;
 import com.ibm.whc.deid.shared.pojo.config.ConfigSchemaType;
 import com.ibm.whc.deid.shared.pojo.config.DeidMaskingConfig;
+import com.ibm.whc.deid.shared.pojo.config.Rule;
 import com.ibm.whc.deid.shared.pojo.config.json.JsonMaskingRule;
+import com.ibm.whc.deid.shared.pojo.config.masking.HashMaskingProviderConfig;
+import com.ibm.whc.deid.shared.pojo.config.masking.MaskingProviderConfig;
 import com.ibm.whc.deid.shared.pojo.masking.DataMaskingModel;
+import com.ibm.whc.deid.shared.util.InvalidMaskingConfigurationException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -55,8 +61,19 @@ public class DataMaskingControllerErrorPathTest {
   private static final Logger log =
       LoggerFactory.getLogger(DataMaskingControllerErrorPathTest.class);
 
+  private static String TEST_CONFIG;
+  private static String TEST_DATA;
+
   @Autowired
   private WebApplicationContext wac;
+
+  @BeforeClass
+  public static void testSetup() throws Exception {
+    TEST_CONFIG = new String(Files.readAllBytes(Paths.get(DataMaskingControllerErrorPathTest.class
+        .getResource("/config/fhir/masking_config.json").toURI())));
+    TEST_DATA = new String(Files.readAllBytes(Paths.get(DataMaskingControllerErrorPathTest.class
+        .getResource("/masking/data/simple_fhir.json").toURI())));
+  }
 
   @Before
   public void setup() {
@@ -86,13 +103,10 @@ public class DataMaskingControllerErrorPathTest {
   public void testMaskNullDataListMember() throws Exception {
     String data = null;
 
-    String config = new String(Files.readAllBytes(
-        Paths.get(getClass().getResource("/config/fhir/masking_config.json").toURI())));
-
     List<String> inputList = new ArrayList<>();
     inputList.add(data);
     DataMaskingModel dataMaskingModel =
-        new DataMaskingModel(config, inputList, ConfigSchemaType.FHIR);
+        new DataMaskingModel(TEST_CONFIG, inputList, ConfigSchemaType.FHIR);
     ObjectMapper mapper = new ObjectMapper();
     String request = mapper.writeValueAsString(dataMaskingModel);
 
@@ -106,12 +120,9 @@ public class DataMaskingControllerErrorPathTest {
 
   @Test
   public void testMaskNullOrEmptyData() throws Exception {
-    String config = new String(Files.readAllBytes(
-        Paths.get(getClass().getResource("/config/fhir/masking_config.json").toURI())));
-
     List<String> inputList = null;
     DataMaskingModel dataMaskingModel =
-        new DataMaskingModel(config, inputList, ConfigSchemaType.FHIR);
+        new DataMaskingModel(TEST_CONFIG, inputList, ConfigSchemaType.FHIR);
     ObjectMapper mapper = new ObjectMapper();
     String request = mapper.writeValueAsString(dataMaskingModel);
 
@@ -123,7 +134,7 @@ public class DataMaskingControllerErrorPathTest {
         .andExpect(content().string("Invalid input error data"));
 
     inputList = new ArrayList<>();
-    dataMaskingModel = new DataMaskingModel(config, inputList, ConfigSchemaType.FHIR);
+    dataMaskingModel = new DataMaskingModel(TEST_CONFIG, inputList, ConfigSchemaType.FHIR);
     request = mapper.writeValueAsString(dataMaskingModel);
 
     log.info(request);
@@ -136,13 +147,10 @@ public class DataMaskingControllerErrorPathTest {
 
   @Test
   public void testMaskNullConfig() throws Exception {
-    String data = new String(Files
-        .readAllBytes(Paths.get(getClass().getResource("/masking/data/simple_fhir.json").toURI())));
-
     String config = null;
 
     List<String> inputList = new ArrayList<>();
-    inputList.add(data);
+    inputList.add(TEST_DATA);
     DataMaskingModel dataMaskingModel =
         new DataMaskingModel(config, inputList, ConfigSchemaType.FHIR);
     ObjectMapper mapper = new ObjectMapper();
@@ -158,15 +166,11 @@ public class DataMaskingControllerErrorPathTest {
 
   @Test
   public void testNullSchemaType() throws Exception {
-    String data = new String(Files
-        .readAllBytes(Paths.get(getClass().getResource("/masking/data/simple_fhir.json").toURI())));
-    String config = new String(Files.readAllBytes(
-        Paths.get(getClass().getResource("/config/fhir/masking_config.json").toURI())));
     ObjectMapper mapper = new ObjectMapper();
     ObjectNode rootNode = mapper.createObjectNode();
     ArrayNode dataNode = rootNode.putArray("data");
-    dataNode.add(data);
-    rootNode.put("config", config);
+    dataNode.add(TEST_DATA);
+    rootNode.put("config", TEST_CONFIG);
     rootNode.put("schemaType", (String) null);
     String request = mapper.writeValueAsString(rootNode);
 
@@ -180,15 +184,11 @@ public class DataMaskingControllerErrorPathTest {
 
   @Test
   public void testInvalidSchemaType() throws Exception {
-    String data = new String(Files
-        .readAllBytes(Paths.get(getClass().getResource("/masking/data/simple_fhir.json").toURI())));
-    String config = new String(Files.readAllBytes(
-        Paths.get(getClass().getResource("/config/fhir/masking_config.json").toURI())));
     ObjectMapper mapper = new ObjectMapper();
     ObjectNode rootNode = mapper.createObjectNode();
     ArrayNode dataNode = rootNode.putArray("data");
-    dataNode.add(data);
-    rootNode.put("config", config);
+    dataNode.add(TEST_DATA);
+    rootNode.put("config", TEST_CONFIG);
     rootNode.put("schemaType", "invalid");
     String request = mapper.writeValueAsString(rootNode);
 
@@ -202,16 +202,12 @@ public class DataMaskingControllerErrorPathTest {
 
   @Test
   public void testConfigNoJsonSection() throws Exception {
-    String data = new String(Files
-        .readAllBytes(Paths.get(getClass().getResource("/masking/data/simple_fhir.json").toURI())));
-    String configString = new String(Files.readAllBytes(
-        Paths.get(getClass().getResource("/config/fhir/masking_config.json").toURI())));
     ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
 
-    DeidMaskingConfig config = objectMapper.readValue(configString, DeidMaskingConfig.class);
+    DeidMaskingConfig config = objectMapper.readValue(TEST_CONFIG, DeidMaskingConfig.class);
     config.setJson(null);
     List<String> dataList = new ArrayList<>();
-    dataList.add(data);
+    dataList.add(TEST_DATA);
     DataMaskingModel dataMaskingModel = new DataMaskingModel(
         objectMapper.writeValueAsString(config), dataList, ConfigSchemaType.FHIR);
     ObjectMapper mapper = new ObjectMapper();
@@ -228,15 +224,11 @@ public class DataMaskingControllerErrorPathTest {
 
   @Test
   public void testConfigJsonNoSchemaType() throws Exception {
-    String data = new String(Files
-        .readAllBytes(Paths.get(getClass().getResource("/masking/data/simple_fhir.json").toURI())));
     List<String> dataList = new ArrayList<>();
-    dataList.add(data);
+    dataList.add(TEST_DATA);
 
-    String configString = new String(Files.readAllBytes(
-        Paths.get(getClass().getResource("/config/fhir/masking_config.json").toURI())));
     ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-    DeidMaskingConfig config = objectMapper.readValue(configString, DeidMaskingConfig.class);
+    DeidMaskingConfig config = objectMapper.readValue(TEST_CONFIG, DeidMaskingConfig.class);
     config.getJson().setSchemaType(null);
 
     DataMaskingModel dataMaskingModel = new DataMaskingModel(
@@ -253,15 +245,11 @@ public class DataMaskingControllerErrorPathTest {
 
   @Test
   public void testConfigNullMessageTypes() throws Exception {
-    String data = new String(Files
-        .readAllBytes(Paths.get(getClass().getResource("/masking/data/simple_fhir.json").toURI())));
     List<String> dataList = new ArrayList<>();
-    dataList.add(data);
+    dataList.add(TEST_DATA);
 
-    String configString = new String(Files.readAllBytes(
-        Paths.get(getClass().getResource("/config/fhir/masking_config.json").toURI())));
     ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-    DeidMaskingConfig config = objectMapper.readValue(configString, DeidMaskingConfig.class);
+    DeidMaskingConfig config = objectMapper.readValue(TEST_CONFIG, DeidMaskingConfig.class);
 
     config.getJson().setMessageTypes(null);
     DataMaskingModel dataMaskingModel = new DataMaskingModel(
@@ -279,15 +267,11 @@ public class DataMaskingControllerErrorPathTest {
 
   @Test
   public void testConfigEmptyMessageTypes() throws Exception {
-    String data = new String(Files
-        .readAllBytes(Paths.get(getClass().getResource("/masking/data/simple_fhir.json").toURI())));
     List<String> dataList = new ArrayList<>();
-    dataList.add(data);
+    dataList.add(TEST_DATA);
 
-    String configString = new String(Files.readAllBytes(
-        Paths.get(getClass().getResource("/config/fhir/masking_config.json").toURI())));
     ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-    DeidMaskingConfig config = objectMapper.readValue(configString, DeidMaskingConfig.class);
+    DeidMaskingConfig config = objectMapper.readValue(TEST_CONFIG, DeidMaskingConfig.class);
 
     config.getJson().setMessageTypes(new ArrayList<>());
     DataMaskingModel dataMaskingModel = new DataMaskingModel(
@@ -305,15 +289,11 @@ public class DataMaskingControllerErrorPathTest {
 
   @Test
   public void testConfigEmptyInMessageType() throws Exception {
-    String data = new String(Files
-        .readAllBytes(Paths.get(getClass().getResource("/masking/data/simple_fhir.json").toURI())));
     List<String> dataList = new ArrayList<>();
-    dataList.add(data);
+    dataList.add(TEST_DATA);
 
-    String configString = new String(Files.readAllBytes(
-        Paths.get(getClass().getResource("/config/fhir/masking_config.json").toURI())));
     ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-    DeidMaskingConfig config = objectMapper.readValue(configString, DeidMaskingConfig.class);
+    DeidMaskingConfig config = objectMapper.readValue(TEST_CONFIG, DeidMaskingConfig.class);
 
     config.getJson().getMessageTypes().add(0, "");
     DataMaskingModel dataMaskingModel = new DataMaskingModel(
@@ -331,15 +311,11 @@ public class DataMaskingControllerErrorPathTest {
 
   @Test
   public void testConfigNullInMessageType() throws Exception {
-    String data = new String(Files
-        .readAllBytes(Paths.get(getClass().getResource("/masking/data/simple_fhir.json").toURI())));
     List<String> dataList = new ArrayList<>();
-    dataList.add(data);
+    dataList.add(TEST_DATA);
 
-    String configString = new String(Files.readAllBytes(
-        Paths.get(getClass().getResource("/config/fhir/masking_config.json").toURI())));
     ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-    DeidMaskingConfig config = objectMapper.readValue(configString, DeidMaskingConfig.class);
+    DeidMaskingConfig config = objectMapper.readValue(TEST_CONFIG, DeidMaskingConfig.class);
 
     config.getJson().getMessageTypes().add(1, null);
     DataMaskingModel dataMaskingModel = new DataMaskingModel(
@@ -357,15 +333,11 @@ public class DataMaskingControllerErrorPathTest {
 
   @Test
   public void testConfigWhitespaceInMessageType() throws Exception {
-    String data = new String(Files
-        .readAllBytes(Paths.get(getClass().getResource("/masking/data/simple_fhir.json").toURI())));
     List<String> dataList = new ArrayList<>();
-    dataList.add(data);
+    dataList.add(TEST_DATA);
 
-    String configString = new String(Files.readAllBytes(
-        Paths.get(getClass().getResource("/config/fhir/masking_config.json").toURI())));
     ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-    DeidMaskingConfig config = objectMapper.readValue(configString, DeidMaskingConfig.class);
+    DeidMaskingConfig config = objectMapper.readValue(TEST_CONFIG, DeidMaskingConfig.class);
 
     config.getJson().getMessageTypes().add(2, "  \t");
     DataMaskingModel dataMaskingModel = new DataMaskingModel(
@@ -383,15 +355,11 @@ public class DataMaskingControllerErrorPathTest {
 
   @Test
   public void testConfigJsonNullRule() throws Exception {
-    String data = new String(Files
-        .readAllBytes(Paths.get(getClass().getResource("/masking/data/simple_fhir.json").toURI())));
     List<String> dataList = new ArrayList<>();
-    dataList.add(data);
+    dataList.add(TEST_DATA);
 
-    String configString = new String(Files.readAllBytes(
-        Paths.get(getClass().getResource("/config/fhir/masking_config.json").toURI())));
     ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-    DeidMaskingConfig config = objectMapper.readValue(configString, DeidMaskingConfig.class);
+    DeidMaskingConfig config = objectMapper.readValue(TEST_CONFIG, DeidMaskingConfig.class);
 
     config.getJson().getMaskingRules().add(0, null);
     DataMaskingModel dataMaskingModel = new DataMaskingModel(
@@ -409,15 +377,11 @@ public class DataMaskingControllerErrorPathTest {
 
   @Test
   public void testConfigJsonRuleNameNull() throws Exception {
-    String data = new String(Files
-        .readAllBytes(Paths.get(getClass().getResource("/masking/data/simple_fhir.json").toURI())));
     List<String> dataList = new ArrayList<>();
-    dataList.add(data);
+    dataList.add(TEST_DATA);
 
-    String configString = new String(Files.readAllBytes(
-        Paths.get(getClass().getResource("/config/fhir/masking_config.json").toURI())));
     ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-    DeidMaskingConfig config = objectMapper.readValue(configString, DeidMaskingConfig.class);
+    DeidMaskingConfig config = objectMapper.readValue(TEST_CONFIG, DeidMaskingConfig.class);
 
     config.getJson().getMaskingRules().add(1, new JsonMaskingRule("/fhir/patient/number", null));
     DataMaskingModel dataMaskingModel = new DataMaskingModel(
@@ -435,15 +399,11 @@ public class DataMaskingControllerErrorPathTest {
 
   @Test
   public void testConfigJsonPathNull() throws Exception {
-    String data = new String(Files
-        .readAllBytes(Paths.get(getClass().getResource("/masking/data/simple_fhir.json").toURI())));
     List<String> dataList = new ArrayList<>();
-    dataList.add(data);
+    dataList.add(TEST_DATA);
 
-    String configString = new String(Files.readAllBytes(
-        Paths.get(getClass().getResource("/config/fhir/masking_config.json").toURI())));
     ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-    DeidMaskingConfig config = objectMapper.readValue(configString, DeidMaskingConfig.class);
+    DeidMaskingConfig config = objectMapper.readValue(TEST_CONFIG, DeidMaskingConfig.class);
 
     config.getJson().getMaskingRules().add(2, new JsonMaskingRule(null, "HASH"));
     DataMaskingModel dataMaskingModel = new DataMaskingModel(
@@ -461,15 +421,11 @@ public class DataMaskingControllerErrorPathTest {
 
   @Test
   public void testConfigJsonPathBad() throws Exception {
-    String data = new String(Files
-        .readAllBytes(Paths.get(getClass().getResource("/masking/data/simple_fhir.json").toURI())));
     List<String> dataList = new ArrayList<>();
-    dataList.add(data);
+    dataList.add(TEST_DATA);
 
-    String configString = new String(Files.readAllBytes(
-        Paths.get(getClass().getResource("/config/fhir/masking_config.json").toURI())));
     ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-    DeidMaskingConfig config = objectMapper.readValue(configString, DeidMaskingConfig.class);
+    DeidMaskingConfig config = objectMapper.readValue(TEST_CONFIG, DeidMaskingConfig.class);
 
     int offset = config.getJson().getMaskingRules().size();
     config.getJson().getMaskingRules().add(new JsonMaskingRule("", "HASH"));
@@ -489,15 +445,11 @@ public class DataMaskingControllerErrorPathTest {
 
   @Test
   public void testConfigRuleAssignmentMismatch() throws Exception {
-    String data = new String(Files
-        .readAllBytes(Paths.get(getClass().getResource("/masking/data/simple_fhir.json").toURI())));
     List<String> dataList = new ArrayList<>();
-    dataList.add(data);
+    dataList.add(TEST_DATA);
 
-    String configString = new String(Files.readAllBytes(
-        Paths.get(getClass().getResource("/config/fhir/masking_config.json").toURI())));
     ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
-    DeidMaskingConfig config = objectMapper.readValue(configString, DeidMaskingConfig.class);
+    DeidMaskingConfig config = objectMapper.readValue(TEST_CONFIG, DeidMaskingConfig.class);
 
     config.getJson().getMaskingRules().get(0).setRule("no_1");
     config.getJson().getMaskingRules().get(1).setRule("");
@@ -516,4 +468,168 @@ public class DataMaskingControllerErrorPathTest {
             "The JSON masking rule does not refer to a valid rule: no_1. There are 4 invalid rules.")));
   }
 
+  @Test
+  public void testConfigNullRule() throws Exception {
+    List<String> dataList = new ArrayList<>();
+    dataList.add(TEST_DATA);
+
+    ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
+    DeidMaskingConfig config = objectMapper.readValue(TEST_CONFIG, DeidMaskingConfig.class);
+
+    int count = config.getRules().size();
+    config.getRules().add(null);
+    DataMaskingModel dataMaskingModel = new DataMaskingModel(
+        objectMapper.writeValueAsString(config), dataList, ConfigSchemaType.FHIR);
+    String request = objectMapper.writeValueAsString(dataMaskingModel);
+
+    log.info(request);
+    this.mockMvc
+        .perform(post(basePath + "/deidentification")
+            .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
+        .andDo(print()).andExpect(status().isBadRequest()).andExpect(
+            content().string(containsString("invalid masking configuration: the rule at offset "
+                + count + " of the list in `rules` is null")));
+  }
+
+  @Test
+  public void testConfigNullRuleName() throws Exception {
+    List<String> dataList = new ArrayList<>();
+    dataList.add(TEST_DATA);
+
+    ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
+    DeidMaskingConfig config = objectMapper.readValue(TEST_CONFIG, DeidMaskingConfig.class);
+
+    config.getRules().add(1, new Rule(null, Arrays.asList(new HashMaskingProviderConfig())));
+
+    DataMaskingModel dataMaskingModel = new DataMaskingModel(
+        objectMapper.writeValueAsString(config), dataList, ConfigSchemaType.FHIR);
+    String request = objectMapper.writeValueAsString(dataMaskingModel);
+
+    log.info(request);
+    this.mockMvc
+        .perform(post(basePath + "/deidentification")
+            .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
+        .andDo(print()).andExpect(status().isBadRequest())
+        .andExpect(content().string(containsString(
+            "invalid masking configuration: the `name` property is missing from the rule at offset 1 of the list in `rules`")));
+  }
+
+  @Test
+  public void testConfigEmptyRuleName() throws Exception {
+    List<String> dataList = new ArrayList<>();
+    dataList.add(TEST_DATA);
+
+    ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
+    DeidMaskingConfig config = objectMapper.readValue(TEST_CONFIG, DeidMaskingConfig.class);
+
+    config.getRules().add(2, new Rule("  \t \n", Arrays.asList(new HashMaskingProviderConfig())));
+
+    DataMaskingModel dataMaskingModel = new DataMaskingModel(
+        objectMapper.writeValueAsString(config), dataList, ConfigSchemaType.FHIR);
+    String request = objectMapper.writeValueAsString(dataMaskingModel);
+
+    log.info(request);
+    this.mockMvc
+        .perform(post(basePath + "/deidentification")
+            .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
+        .andDo(print()).andExpect(status().isBadRequest())
+        .andExpect(content().string(containsString(
+            "invalid masking configuration: the `name` property is missing from the rule at offset 2 of the list in `rules`")));
+  }
+
+  @Test
+  public void testConfigDuplicateRuleName() throws Exception {
+    List<String> dataList = new ArrayList<>();
+    dataList.add(TEST_DATA);
+
+    ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
+    DeidMaskingConfig config = objectMapper.readValue(TEST_CONFIG, DeidMaskingConfig.class);
+
+    String ruleName = config.getRules().get(0).getName();
+    int count = config.getRules().size();
+    config.getRules().add(new Rule(ruleName, Arrays.asList(new HashMaskingProviderConfig())));
+
+    DataMaskingModel dataMaskingModel = new DataMaskingModel(
+        objectMapper.writeValueAsString(config), dataList, ConfigSchemaType.FHIR);
+    String request = objectMapper.writeValueAsString(dataMaskingModel);
+
+    log.info(request);
+    this.mockMvc
+        .perform(post(basePath + "/deidentification")
+            .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
+        .andDo(print()).andExpect(status().isBadRequest())
+        .andExpect(content().string(containsString(
+            "invalid masking configuration: the value of the `name` property in the rule at offset "
+                + count + " of the list in `rules` has already been used by another rule")));
+  }
+
+  @Test
+  public void testConfigRuleNoMaskingProviders() throws Exception {
+    List<String> dataList = new ArrayList<>();
+    dataList.add(TEST_DATA);
+
+    ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
+    DeidMaskingConfig config = objectMapper.readValue(TEST_CONFIG, DeidMaskingConfig.class);
+
+    config.getRules().get(2).setMaskingProviders(null);
+
+    DataMaskingModel dataMaskingModel = new DataMaskingModel(
+        objectMapper.writeValueAsString(config), dataList, ConfigSchemaType.FHIR);
+    String request = objectMapper.writeValueAsString(dataMaskingModel);
+
+    log.info(request);
+    this.mockMvc
+        .perform(post(basePath + "/deidentification")
+            .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
+        .andDo(print()).andExpect(status().isBadRequest())
+        .andExpect(content().string(containsString(
+            "invalid masking configuration: the `maskingProviders` property is missing from the rule at offset 2 of the list in `rules`")));
+  }
+
+  @Test
+  public void testConfigNullMaskingProvider() throws Exception {
+    List<String> dataList = new ArrayList<>();
+    dataList.add(TEST_DATA);
+
+    ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
+    DeidMaskingConfig config = objectMapper.readValue(TEST_CONFIG, DeidMaskingConfig.class);
+
+    config.getRules().get(2).getMaskingProviders().add(null);
+
+    DataMaskingModel dataMaskingModel = new DataMaskingModel(
+        objectMapper.writeValueAsString(config), dataList, ConfigSchemaType.FHIR);
+    String request = objectMapper.writeValueAsString(dataMaskingModel);
+
+    log.info(request);
+    this.mockMvc
+        .perform(post(basePath + "/deidentification")
+            .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
+        .andDo(print()).andExpect(status().isBadRequest())
+        .andExpect(content().string(containsString(
+            "invalid masking configuration: the masking provider at offset 1 in the list in `maskingProviders` for the rule at offset 2 of the list in `rules` is null")));
+  }
+
+  @Test
+  public void testConfigTooManyProviders() throws Exception {
+    List<String> dataList = new ArrayList<>();
+    dataList.add(TEST_DATA);
+
+    ObjectMapper objectMapper = ObjectMapperFactory.getObjectMapper();
+    DeidMaskingConfig config = objectMapper.readValue(TEST_CONFIG, DeidMaskingConfig.class);
+
+    config.getRules().get(0).getMaskingProviders().add(new HashMaskingProviderConfig());
+    config.getRules().get(0).getMaskingProviders().add(new HashMaskingProviderConfig());
+
+    DataMaskingModel dataMaskingModel = new DataMaskingModel(
+        objectMapper.writeValueAsString(config), dataList, ConfigSchemaType.FHIR);
+    String request = objectMapper.writeValueAsString(dataMaskingModel);
+
+    log.info(request);
+    this.mockMvc
+        .perform(post(basePath + "/deidentification")
+            .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
+        .andDo(print()).andExpect(status().isBadRequest())
+        .andExpect(content().string(containsString(
+            "invalid masking configuration: too many entries in `maskingProviders` for the rule at offset 0 of the list in `rules` - the maximum allowed is 2")));
+  }    
 }

@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -238,6 +239,7 @@ public class MaskingConfigUtils {
       throw new InvalidMaskingConfigurationException("invalid configuration: " + e.getMessage(), e);
     }
 
+    validateRules(deidMaskingConfig);
     validateJsonConfig(deidMaskingConfig, false);
 
     return deidMaskingConfig;
@@ -358,6 +360,90 @@ public class MaskingConfigUtils {
         throw new InvalidMaskingConfigurationException(
             "The JSON masking rule does not refer to a valid rule: " + firstMismatch
                 + ". There are " + mismatchCount + " invalid rules.");
+      }
+    }
+  }
+
+  /**
+   * Validates the content of the "rules" property in a masking configuration.
+   *
+   * @param deidMaskingConfig the masking configuration being validated
+   * 
+   * @throws InvalidMaskingConfigurationException if the masking configuration is not valid.
+   */
+  protected void validateRules(DeidMaskingConfig deidMaskingConfig)
+      throws InvalidMaskingConfigurationException {
+
+    List<Rule> rules = deidMaskingConfig.getRules();
+    // it is valid for the list of rules to be missing or empty
+    if (rules != null && !rules.isEmpty()) {
+      HashSet<String> ruleNames = new HashSet<>(rules.size() * 2);
+      int offset = 0;
+      for (Rule rule : rules) {
+        if (rule == null) {
+          throw new InvalidMaskingConfigurationException(
+              "invalid masking configuration: the rule at offset " + offset + " of the list in `"
+                  + DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "` is null",
+              DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME);
+        }
+
+        String ruleName = rule.getName();
+        if (ruleName == null || ruleName.trim().isEmpty()) {
+          throw new InvalidMaskingConfigurationException(
+              "invalid masking configuration: the `" + Rule.NAME_PROPERTY_NAME
+                  + "` property is missing from the rule at offset " + offset + " of the list in `"
+                  + DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "`",
+              DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "." + Rule.NAME_PROPERTY_NAME);
+        }
+
+        if (!ruleNames.add(ruleName)) {
+          throw new InvalidMaskingConfigurationException(
+              "invalid masking configuration: the value of the `" + Rule.NAME_PROPERTY_NAME
+                  + "` property in the rule at offset " + offset + " of the list in `"
+                  + DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME
+                  + "` has already been used by another rule",
+              DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "." + Rule.NAME_PROPERTY_NAME);
+        }
+
+        List<MaskingProviderConfig> providers = rule.getMaskingProviders();
+        if (providers == null || providers.isEmpty()) {
+          throw new InvalidMaskingConfigurationException(
+              "invalid masking configuration: the `" + Rule.PROVIDERS_PROPERTY_NAME
+                  + "` property is missing from the rule at offset " + offset + " of the list in `"
+                  + DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "`",
+              DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "."
+                  + Rule.PROVIDERS_PROPERTY_NAME);
+        }
+
+        if (providers.size() > 2) {
+          throw new InvalidMaskingConfigurationException(
+              "invalid masking configuration: too many entries in `" + Rule.PROVIDERS_PROPERTY_NAME
+                  + "` for the rule at offset " + offset + " of the list in `"
+                  + DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME
+                  + "` - the maximum allowed is 2",
+              DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "."
+                  + Rule.PROVIDERS_PROPERTY_NAME);
+        }
+
+        int providerOffset = 0;
+        for (MaskingProviderConfig provider : providers) {
+          if (provider == null) {
+            throw new InvalidMaskingConfigurationException(
+                "invalid masking configuration: the masking provider at offset " + providerOffset
+                    + " in the list in `" + Rule.PROVIDERS_PROPERTY_NAME
+                    + "` for the rule at offset " + offset + " of the list in `"
+                    + DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "` is null",
+                DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "."
+                    + Rule.PROVIDERS_PROPERTY_NAME);
+          }
+
+          // the `type` property in each masking provider could not have been deserialized without
+          // being valid
+
+          providerOffset++;
+        }
+
+        offset++;
       }
     }
   }

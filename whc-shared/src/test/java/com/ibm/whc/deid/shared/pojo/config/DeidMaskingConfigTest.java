@@ -49,7 +49,20 @@ public class DeidMaskingConfigTest {
     assertNotNull(config.getRulesMap().get("rule1"));
     assertEquals(2, config.getRulesMap().get("rule1").getMaskingProviders().size());
     assertNull(config.getRulesMap().get("Rule1"));
-    
+
+    rules.add(null);
+    config.setRules(rules);
+    assertNotNull(config.getRules());
+    assertEquals(2, config.getRules().size());
+    assertEquals("rule1", config.getRules().get(0).getName());
+    assertEquals(2, config.getRules().get(0).getMaskingProviders().size());
+    assertNull(config.getRules().get(1));
+    assertNotNull(config.getRulesMap());
+    assertEquals(1, config.getRulesMap().size());
+    assertNotNull(config.getRulesMap().get("rule1"));
+    assertEquals(2, config.getRulesMap().get("rule1").getMaskingProviders().size());
+    assertNull(config.getRulesMap().get("Rule1"));
+
     config.setRules(null);
     assertNull(config.getRules());
     assertNotNull(config.getRulesMap());   
@@ -59,13 +72,12 @@ public class DeidMaskingConfigTest {
   @Test
   public void testGetStringValueWithPrefixMatch() {
     DeidMaskingConfig config = new DeidMaskingConfig();
-    assertNotNull(config.getJson());
-    assertNotNull(config.getJson().getMaskingRules());
-    assertEquals(0, config.getJson().getMaskingRules().size());
+    assertNull(config.getJson());
     Map<String,String> map = config.getStringValueWithPrefixMatch("x");
     assertNotNull(map);
     assertEquals(0, map.size());
-    
+
+    config.setJson(new JsonConfig());
     config.getJson().getMaskingRules().add(new JsonMaskingRule("/fhir/path/data", "rule1"));
     assertEquals(1, config.getJson().getMaskingRules().size());
     map = config.getStringValueWithPrefixMatch("x");
