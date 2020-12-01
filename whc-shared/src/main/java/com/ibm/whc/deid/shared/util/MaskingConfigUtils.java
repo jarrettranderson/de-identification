@@ -248,14 +248,15 @@ public class MaskingConfigUtils {
    *
    * @param deidMaskingConfig the masking configuration being validated
    * 
-   * @param allowsNullRuleInRuleAssignment <i>True</i> if rule assignments should be accepted if they 
-   * do not actually specify a rule and <i>False</i> otherwise.  Any rule assignments accepted under
-   * the value <i>True</i> must be removed or modified before a masking operation uses this configuration.
+   * @param allowsNullRuleInRuleAssignment <i>True</i> if rule assignments should be accepted if
+   *        they do not actually specify a rule and <i>False</i> otherwise. Any rule assignments
+   *        accepted under the value <i>True</i> must be removed or modified before a masking
+   *        operation uses this configuration.
    * 
    * @throws InvalidMaskingConfigurationException if the masking configuration is not valid.
    */
-  protected void validateJsonConfig(DeidMaskingConfig deidMaskingConfig, boolean allowsNullRuleInRuleAssignment)
-      throws InvalidMaskingConfigurationException {
+  protected void validateJsonConfig(DeidMaskingConfig deidMaskingConfig,
+      boolean allowsNullRuleInRuleAssignment) throws InvalidMaskingConfigurationException {
 
     JsonConfig jsonConfig = deidMaskingConfig.getJson();
     if (jsonConfig == null) {
@@ -303,52 +304,60 @@ public class MaskingConfigUtils {
 
     List<JsonMaskingRule> maskingRules = jsonConfig.getMaskingRules();
     if (maskingRules != null && !maskingRules.isEmpty()) {
-      Map<String,Rule> rulesMap = deidMaskingConfig.getRulesMap();
+      Map<String, Rule> rulesMap = deidMaskingConfig.getRulesMap();
       int offset = 0;
       int mismatchCount = 0;
       String firstMismatch = null;
-      
+
       for (JsonMaskingRule ruleAssignment : maskingRules) {
         if (ruleAssignment == null) {
           throw new InvalidMaskingConfigurationException(
-              "invalid masking configuration: `" + JsonMaskingRule.RULE_PROPERTY_NAME + "` is missing from the rule assignment at offset " + offset + " in the list at `" + 
-              DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "." + JsonConfig.RULES_PROPERTY_NAME + "`", 
+              "invalid masking configuration: `" + JsonMaskingRule.RULE_PROPERTY_NAME
+                  + "` is missing from the rule assignment at offset " + offset
+                  + " in the list at `" + DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
+                  + JsonConfig.RULES_PROPERTY_NAME + "`",
               DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
                   + JsonConfig.RULES_PROPERTY_NAME + "." + JsonMaskingRule.RULE_PROPERTY_NAME);
         }
-        
+
         String path = ruleAssignment.getJsonPath();
         if (path == null || !path.startsWith("/")) {
           throw new InvalidMaskingConfigurationException(
-              "invalid masking configuration: `" + JsonMaskingRule.PATH_PROPERTY_NAME + "` in the rule assignment at offset " + offset + " in the list at `" + 
-              DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "." + JsonConfig.RULES_PROPERTY_NAME + "` must start with `/`", 
+              "invalid masking configuration: `" + JsonMaskingRule.PATH_PROPERTY_NAME
+                  + "` in the rule assignment at offset " + offset + " in the list at `"
+                  + DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
+                  + JsonConfig.RULES_PROPERTY_NAME + "` must start with `/`",
               DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
                   + JsonConfig.RULES_PROPERTY_NAME + "." + JsonMaskingRule.PATH_PROPERTY_NAME);
         }
-        
+
         String ruleName = ruleAssignment.getRule();
-        if (ruleName == null && ! allowsNullRuleInRuleAssignment) {
-          throw new InvalidMaskingConfigurationException(
-                  "invalid masking configuration: `" + JsonMaskingRule.RULE_PROPERTY_NAME + "` is missing from the rule assignment at offset " + offset + " in the list at `" + 
-                  DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "." + JsonConfig.RULES_PROPERTY_NAME + "`", 
-                  DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
-                      + JsonConfig.RULES_PROPERTY_NAME + "." + JsonMaskingRule.RULE_PROPERTY_NAME);
-        }
-        
-        if (!rulesMap.containsKey(ruleName)) {
-          mismatchCount++;
-          if (firstMismatch == null) {
-            firstMismatch = ruleName;
+        if (ruleName == null) {
+          if (!allowsNullRuleInRuleAssignment) {
+            throw new InvalidMaskingConfigurationException(
+                "invalid masking configuration: `" + JsonMaskingRule.RULE_PROPERTY_NAME
+                    + "` is missing from the rule assignment at offset " + offset
+                    + " in the list at `" + DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
+                    + JsonConfig.RULES_PROPERTY_NAME + "`",
+                DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
+                    + JsonConfig.RULES_PROPERTY_NAME + "." + JsonMaskingRule.RULE_PROPERTY_NAME);
+          }
+        } else {
+          if (!rulesMap.containsKey(ruleName)) {
+            mismatchCount++;
+            if (firstMismatch == null) {
+              firstMismatch = ruleName;
+            }
           }
         }
-        
+
         offset++;
       }
-      
+
       if (firstMismatch != null) {
         throw new InvalidMaskingConfigurationException(
-            "The JSON masking rule does not refer to a valid rule: " + firstMismatch + ". There are "
-                + mismatchCount + " invalid rules.");
+            "The JSON masking rule does not refer to a valid rule: " + firstMismatch
+                + ". There are " + mismatchCount + " invalid rules.");
       }
     }
   }
