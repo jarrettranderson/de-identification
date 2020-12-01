@@ -441,6 +441,21 @@ public class MaskingConfigUtils {
           // the `type` property in each masking provider could not have been deserialized without
           // being valid
 
+          try {
+            provider.validate();
+          } catch (InvalidMaskingConfigurationException e) {
+            String location = DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "."
+                + Rule.PROVIDERS_PROPERTY_NAME; 
+            if (e.getLocation() != null) {
+              location += ("." + e.getLocation());
+            }
+            throw new InvalidMaskingConfigurationException(
+                "invalid masking configuration: the masking provider at offset " + providerOffset
+                    + " in the list in `" + Rule.PROVIDERS_PROPERTY_NAME
+                    + "` for the rule at offset " + offset + " of the list in `"
+                    + DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "` is not valid: " + e.getMessage(), e, location);
+          }
+            
           providerOffset++;
         }
 
