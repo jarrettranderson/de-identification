@@ -297,7 +297,7 @@ public class MaskingConfigUtils {
           throw new InvalidMaskingConfigurationException(
               "invalid masking configuration: value at offset " + offset + " in `"
                   + DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
-                  + JsonConfig.MESSAGE_TYPES_PROPERTY_NAME + "` list is missing",
+                  + JsonConfig.MESSAGE_TYPES_PROPERTY_NAME + "` is missing",
               DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
                   + JsonConfig.MESSAGE_TYPES_PROPERTY_NAME);
         }
@@ -316,8 +316,8 @@ public class MaskingConfigUtils {
         if (ruleAssignment == null) {
           throw new InvalidMaskingConfigurationException(
               "invalid masking configuration: `" + JsonMaskingRule.RULE_PROPERTY_NAME
-                  + "` is missing from the rule assignment at offset " + offset
-                  + " in the list at `" + DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
+                  + "` property is missing from the rule assignment at offset " + offset + " in `"
+                  + DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
                   + JsonConfig.RULES_PROPERTY_NAME + "`",
               DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
                   + JsonConfig.RULES_PROPERTY_NAME + "." + JsonMaskingRule.RULE_PROPERTY_NAME);
@@ -327,7 +327,7 @@ public class MaskingConfigUtils {
         if (path == null || !path.startsWith("/")) {
           throw new InvalidMaskingConfigurationException(
               "invalid masking configuration: `" + JsonMaskingRule.PATH_PROPERTY_NAME
-                  + "` in the rule assignment at offset " + offset + " in the list at `"
+                  + "` property in the rule assignment at offset " + offset + " in `"
                   + DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
                   + JsonConfig.RULES_PROPERTY_NAME + "` must start with `/`",
               DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
@@ -339,8 +339,8 @@ public class MaskingConfigUtils {
           if (!allowsNullRuleInRuleAssignment) {
             throw new InvalidMaskingConfigurationException(
                 "invalid masking configuration: `" + JsonMaskingRule.RULE_PROPERTY_NAME
-                    + "` is missing from the rule assignment at offset " + offset
-                    + " in the list at `" + DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
+                    + "` property is missing from the rule assignment at offset " + offset + " in `"
+                    + DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
                     + JsonConfig.RULES_PROPERTY_NAME + "`",
                 DeidMaskingConfig.JSON_CONFIGURATION_PROPERTY_NAME + "."
                     + JsonConfig.RULES_PROPERTY_NAME + "." + JsonMaskingRule.RULE_PROPERTY_NAME);
@@ -383,7 +383,7 @@ public class MaskingConfigUtils {
       for (Rule rule : rules) {
         if (rule == null) {
           throw new InvalidMaskingConfigurationException(
-              "invalid masking configuration: the rule at offset " + offset + " of the list in `"
+              "invalid masking configuration: the rule at offset " + offset + " in `"
                   + DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "` is null",
               DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME);
         }
@@ -392,7 +392,7 @@ public class MaskingConfigUtils {
         if (ruleName == null || ruleName.trim().isEmpty()) {
           throw new InvalidMaskingConfigurationException(
               "invalid masking configuration: the `" + Rule.NAME_PROPERTY_NAME
-                  + "` property is missing from the rule at offset " + offset + " of the list in `"
+                  + "` property is missing from the rule at offset " + offset + " in `"
                   + DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "`",
               DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "." + Rule.NAME_PROPERTY_NAME);
         }
@@ -400,7 +400,7 @@ public class MaskingConfigUtils {
         if (!ruleNames.add(ruleName)) {
           throw new InvalidMaskingConfigurationException(
               "invalid masking configuration: the value of the `" + Rule.NAME_PROPERTY_NAME
-                  + "` property in the rule at offset " + offset + " of the list in `"
+                  + "` property in the rule at offset " + offset + " in `"
                   + DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME
                   + "` has already been used by another rule",
               DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "." + Rule.NAME_PROPERTY_NAME);
@@ -410,7 +410,7 @@ public class MaskingConfigUtils {
         if (providers == null || providers.isEmpty()) {
           throw new InvalidMaskingConfigurationException(
               "invalid masking configuration: the `" + Rule.PROVIDERS_PROPERTY_NAME
-                  + "` property is missing from the rule at offset " + offset + " of the list in `"
+                  + "` property is missing from the rule at offset " + offset + " in `"
                   + DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "`",
               DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "."
                   + Rule.PROVIDERS_PROPERTY_NAME);
@@ -419,7 +419,7 @@ public class MaskingConfigUtils {
         if (providers.size() > 2) {
           throw new InvalidMaskingConfigurationException(
               "invalid masking configuration: too many entries in `" + Rule.PROVIDERS_PROPERTY_NAME
-                  + "` for the rule at offset " + offset + " of the list in `"
+                  + "` for the rule at offset " + offset + " in `"
                   + DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME
                   + "` - the maximum allowed is 2",
               DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "."
@@ -431,9 +431,8 @@ public class MaskingConfigUtils {
           if (provider == null) {
             throw new InvalidMaskingConfigurationException(
                 "invalid masking configuration: the masking provider at offset " + providerOffset
-                    + " in the list in `" + Rule.PROVIDERS_PROPERTY_NAME
-                    + "` for the rule at offset " + offset + " of the list in `"
-                    + DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "` is null",
+                    + " in `" + Rule.PROVIDERS_PROPERTY_NAME + "` for the rule at offset " + offset
+                    + " in `" + DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "` is null",
                 DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "."
                     + Rule.PROVIDERS_PROPERTY_NAME);
           }
@@ -445,24 +444,25 @@ public class MaskingConfigUtils {
             provider.validate();
           } catch (InvalidMaskingConfigurationException e) {
             String location = DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "."
-                + Rule.PROVIDERS_PROPERTY_NAME; 
+                + Rule.PROVIDERS_PROPERTY_NAME;
             if (e.getLocation() != null) {
               location += ("." + e.getLocation());
             }
             throw new InvalidMaskingConfigurationException(
                 "invalid masking configuration: the masking provider at offset " + providerOffset
-                    + " in the list in `" + Rule.PROVIDERS_PROPERTY_NAME
-                    + "` for the rule at offset " + offset + " of the list in `"
-                    + DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "` is not valid: " + e.getMessage(), e, location);
+                    + " in `" + Rule.PROVIDERS_PROPERTY_NAME + "` for the rule at offset " + offset
+                    + " in `" + DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME
+                    + "` is not valid: " + e.getMessage(),
+                e, location);
           }
-            
+
           providerOffset++;
         }
 
         if (providers.size() == 2) {
           if (providers.get(0).getType().getCategory() == MaskingProviderCategory.CategoryII) {
             throw new InvalidMaskingConfigurationException(
-                "invalid masking configuration: the rule at offset " + offset + " in the list in `"
+                "invalid masking configuration: the rule at offset " + offset + " in `"
                     + DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME
                     + "` contains multiple masking providers, but the first masking provider is not a Category I provider",
                 DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "."
@@ -470,7 +470,7 @@ public class MaskingConfigUtils {
           }
           if (providers.get(1).getType().getCategory() == MaskingProviderCategory.CategoryI) {
             throw new InvalidMaskingConfigurationException(
-                "invalid masking configuration: the rule at offset " + offset + " in the list in `"
+                "invalid masking configuration: the rule at offset " + offset + " in `"
                     + DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME
                     + "` contains multiple masking providers, but the second masking provider is not a Category II provider",
                 DeidMaskingConfig.RULES_CONFIGURATION_PROPERTY_NAME + "."

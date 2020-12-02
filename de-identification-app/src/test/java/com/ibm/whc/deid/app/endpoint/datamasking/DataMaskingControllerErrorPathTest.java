@@ -306,7 +306,7 @@ public class DataMaskingControllerErrorPathTest {
             .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
         .andDo(print()).andExpect(status().isBadRequest())
         .andExpect(content().string(containsString(
-            "invalid masking configuration: value at offset 0 in `json.messageTypes` list is missing")));
+            "invalid masking configuration: value at offset 0 in `json.messageTypes` is missing")));
   }
 
   @Test
@@ -328,7 +328,7 @@ public class DataMaskingControllerErrorPathTest {
             .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
         .andDo(print()).andExpect(status().isBadRequest())
         .andExpect(content().string(containsString(
-            "invalid masking configuration: value at offset 1 in `json.messageTypes` list is missing")));
+            "invalid masking configuration: value at offset 1 in `json.messageTypes` is missing")));
   }
 
   @Test
@@ -350,7 +350,7 @@ public class DataMaskingControllerErrorPathTest {
             .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
         .andDo(print()).andExpect(status().isBadRequest())
         .andExpect(content().string(containsString(
-            "invalid masking configuration: value at offset 2 in `json.messageTypes` list is missing")));
+            "invalid masking configuration: value at offset 2 in `json.messageTypes` is missing")));
   }
 
   @Test
@@ -372,7 +372,7 @@ public class DataMaskingControllerErrorPathTest {
             .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
         .andDo(print()).andExpect(status().isBadRequest())
         .andExpect(content().string(containsString(
-            "invalid masking configuration: `rule` is missing from the rule assignment at offset 0 in the list at `json.maskingRules`")));
+            "invalid masking configuration: `rule` property is missing from the rule assignment at offset 0 in `json.maskingRules`")));
   }
 
   @Test
@@ -394,7 +394,7 @@ public class DataMaskingControllerErrorPathTest {
             .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
         .andDo(print()).andExpect(status().isBadRequest())
         .andExpect(content().string(containsString(
-            "invalid masking configuration: `rule` is missing from the rule assignment at offset 1 in the list at `json.maskingRules`")));
+            "invalid masking configuration: `rule` property is missing from the rule assignment at offset 1 in `json.maskingRules`")));
   }
 
   @Test
@@ -416,7 +416,7 @@ public class DataMaskingControllerErrorPathTest {
             .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
         .andDo(print()).andExpect(status().isBadRequest())
         .andExpect(content().string(containsString(
-            "invalid masking configuration: `jsonPath` in the rule assignment at offset 2 in the list at `json.maskingRules` must start with `/`")));
+            "invalid masking configuration: `jsonPath` property in the rule assignment at offset 2 in `json.maskingRules` must start with `/`")));
   }
 
   @Test
@@ -439,8 +439,8 @@ public class DataMaskingControllerErrorPathTest {
             .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
         .andDo(print()).andExpect(status().isBadRequest())
         .andExpect(content().string(containsString(
-            "invalid masking configuration: `jsonPath` in the rule assignment at offset " + offset
-                + " in the list at `json.maskingRules` must start with `/`")));
+            "invalid masking configuration: `jsonPath` property in the rule assignment at offset "
+                + offset + " in `json.maskingRules` must start with `/`")));
   }
 
   @Test
@@ -486,9 +486,9 @@ public class DataMaskingControllerErrorPathTest {
     this.mockMvc
         .perform(post(basePath + "/deidentification")
             .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
-        .andDo(print()).andExpect(status().isBadRequest()).andExpect(
-            content().string(containsString("invalid masking configuration: the rule at offset "
-                + count + " of the list in `rules` is null")));
+        .andDo(print()).andExpect(status().isBadRequest())
+        .andExpect(content().string(containsString(
+            "invalid masking configuration: the rule at offset " + count + " in `rules` is null")));
   }
 
   @Test
@@ -511,7 +511,7 @@ public class DataMaskingControllerErrorPathTest {
             .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
         .andDo(print()).andExpect(status().isBadRequest())
         .andExpect(content().string(containsString(
-            "invalid masking configuration: the `name` property is missing from the rule at offset 1 of the list in `rules`")));
+            "invalid masking configuration: the `name` property is missing from the rule at offset 1 in `rules`")));
   }
 
   @Test
@@ -534,7 +534,7 @@ public class DataMaskingControllerErrorPathTest {
             .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
         .andDo(print()).andExpect(status().isBadRequest())
         .andExpect(content().string(containsString(
-            "invalid masking configuration: the `name` property is missing from the rule at offset 2 of the list in `rules`")));
+            "invalid masking configuration: the `name` property is missing from the rule at offset 2 in `rules`")));
   }
 
   @Test
@@ -560,7 +560,7 @@ public class DataMaskingControllerErrorPathTest {
         .andDo(print()).andExpect(status().isBadRequest())
         .andExpect(content().string(containsString(
             "invalid masking configuration: the value of the `name` property in the rule at offset "
-                + count + " of the list in `rules` has already been used by another rule")));
+                + count + " in `rules` has already been used by another rule")));
   }
 
   @Test
@@ -583,7 +583,7 @@ public class DataMaskingControllerErrorPathTest {
             .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
         .andDo(print()).andExpect(status().isBadRequest())
         .andExpect(content().string(containsString(
-            "invalid masking configuration: the `maskingProviders` property is missing from the rule at offset 2 of the list in `rules`")));
+            "invalid masking configuration: the `maskingProviders` property is missing from the rule at offset 2 in `rules`")));
   }
 
   @Test
@@ -606,7 +606,7 @@ public class DataMaskingControllerErrorPathTest {
             .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
         .andDo(print()).andExpect(status().isBadRequest())
         .andExpect(content().string(containsString(
-            "invalid masking configuration: the masking provider at offset 1 in the list in `maskingProviders` for the rule at offset 2 of the list in `rules` is null")));
+            "invalid masking configuration: the masking provider at offset 1 in `maskingProviders` for the rule at offset 2 in `rules` is null")));
   }
 
   @Test
@@ -630,7 +630,7 @@ public class DataMaskingControllerErrorPathTest {
             .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
         .andDo(print()).andExpect(status().isBadRequest())
         .andExpect(content().string(containsString(
-            "invalid masking configuration: too many entries in `maskingProviders` for the rule at offset 0 of the list in `rules` - the maximum allowed is 2")));
+            "invalid masking configuration: too many entries in `maskingProviders` for the rule at offset 0 in `rules` - the maximum allowed is 2")));
   }
 
   @Test
@@ -652,7 +652,7 @@ public class DataMaskingControllerErrorPathTest {
             .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
         .andDo(print()).andExpect(status().isBadRequest())
         .andExpect(content().string(containsString(
-            "invalid masking configuration: the rule at offset 0 in the list in `rules` contains multiple masking providers, but the first masking provider is not a Category I provider")));
+            "invalid masking configuration: the rule at offset 0 in `rules` contains multiple masking providers, but the first masking provider is not a Category I provider")));
   }
 
   @Test
@@ -675,7 +675,7 @@ public class DataMaskingControllerErrorPathTest {
             .contentType(MediaType.APPLICATION_JSON_UTF8_VALUE).content(request))
         .andDo(print()).andExpect(status().isBadRequest())
         .andExpect(content().string(containsString(
-            "invalid masking configuration: the rule at offset 2 in the list in `rules` contains multiple masking providers, but the second masking provider is not a Category II provider")));
+            "invalid masking configuration: the rule at offset 2 in `rules` contains multiple masking providers, but the second masking provider is not a Category II provider")));
   }
 
 }
